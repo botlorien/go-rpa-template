@@ -47,3 +47,15 @@ func (s *Session) Close() {
 		s.Browser.MustClose()
 	}
 }
+
+// ApplyHeaders é um Helper genérico.
+// Ele recebe um mapa de headers e os aplica na requisição.
+// Se 'force' for false, ele só aplica se o header ainda não existir na requisição.
+func (s *Session) ApplyHeaders(req *http.Request, headers map[string]string) {
+	for k, v := range headers {
+		// Só define se estiver vazio, permitindo override na ação específica se necessário
+		if req.Header.Get(k) == "" {
+			req.Header.Set(k, v)
+		}
+	}
+}
