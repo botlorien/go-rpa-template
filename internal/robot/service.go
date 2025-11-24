@@ -1,36 +1,58 @@
 package robot
 
 import (
-	"time"
+	"io"
 	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
 	TargetURL string
+	Scraper   *ScraperSession
 }
 
-func NewService(url string) *Service {
-	return &Service{TargetURL: url}
-}
-
-// Execute roda a lógica do RPA
-func (s *Service) Execute() (map[string]any, error) {
-	log.Info().
-			Str("url", s.TargetURL).
-			Str("componente", "scraper_v1").
-			Msg("Iniciando execução do RPA")
-
-	// SIMULAÇÃO DO SCRAPING (Aqui entraria o Colly ou Chromedp)
-	time.Sleep(2 * time.Second) // Simulando latência de rede
-
-	// Se der erro, usamos log.Error().Err(err).Msg("...")
-	
-	result := map[string]any{
-		"status": "sucesso",
-		"dados_extraidos": []string{"Item A", "Item B"},
-		"timestamp": time.Now(),
+func NewService(url string, scraper *ScraperSession) *Service {
+	return &Service{
+		TargetURL: url,
+		Scraper:   scraper,
 	}
+}
 
-	log.Info().Msg("RPA finalizado com sucesso")
-	return result, nil
+func (s *Service) Execute() (map[string]any, error) {
+	log.Info().Str("url", s.TargetURL).Msg("Iniciando scraping...")
+
+	// Decide qual estratégia usar
+	if s.Scraper.UseRod {
+		return s.runRodStrategy()
+	}
+	return s.runHTTPStrategy()
+}
+
+// Estratégia 1: Navegação via Browser (Rod)
+func (s *Service) runRodStrategy() (map[string]any, error) {
+	page := s.Scraper.Browser.MustPage(s.TargetURL)
+	page.MustWaitLoad() // Espera o JS carregar
+
+	// Exemplo: Pegar o título da página
+	title := page.MustEval(`() => document.title`).Str()
+	
+	log.Info().Str("engine", "rod").Str("title", title).Msg("Dados extraídos")
+
+	return map[string]any{"method": "rod", "title": title}, nil
+}
+
+// Estratégia 2: Requisição HTTP Pura (Session)
+func (s *Service) runHTTPStrategy() (map[string]any, error) {
+	resp, err := s.Scraper.HTTPClient.Get(s.TargetURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Lê o corpo (simples)
+	body, _ := io.ReadAll(resp.Body)
+	size := len(body)
+
+	log.Info().Str("engine", "http").Int("size", size).Msg("Dados baixados")
+
+	return map[string]any{"method": "http", "size": size}, nil
 }

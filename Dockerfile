@@ -14,8 +14,17 @@ RUN go build -o /dist/worker cmd/cli/main.go
 # Estágio Final (Imagem Leve)
 FROM alpine:latest
 
-# Instalar certificados CA (obrigatório para HTTPS/Scraping)
-RUN apk --no-cache add ca-certificates tzdata
+# Instala Chromium e dependências para o Rod funcionar
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    tzdata
+
+# Configura variável para o Rod achar o binário
+ENV ROD_BIN=/usr/bin/chromium-browser
 
 WORKDIR /root/
 
