@@ -12,6 +12,9 @@ type Config struct {
 	Env       string `mapstructure:"APP_ENV"`    // local, prod
 	UseRod      bool `mapstructure:"USE_ROD"`      // true = usa browser, false = usa http puro
 	RodHeadless bool `mapstructure:"ROD_HEADLESS"` // true = sem tela
+	BotAppURL  string `mapstructure:"BOTAPP_API_URL"`
+	BotAppUser string `mapstructure:"BOTAPP_API_USUARIO"`
+	BotAppPass string `mapstructure:"BOTAPP_API_SENHA"`
 }
 
 func Load() (*Config, error) {
