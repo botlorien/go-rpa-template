@@ -33,13 +33,13 @@ func main() {
 
 	// A. Criamos o Robô (Core Domain)
 	// 1. Inicializa o Scraper (Singleton)
-    scraperSession := robot.NewScraper(cfg.UseRod, cfg.RodHeadless)
+    scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless)
     
     // IMPORTANTE: Fecha o browser quando a API cair
     defer scraperSession.Close()
 
     // 2. Injeta no Service
-    robotService := robot.NewService(cfg.TargetURL, scraperSession)
+    robotService := robot.NewService(scraperSession)
 
 	// B. Criamos o Handler HTTP e injetamos o Robô nele
 	httpHandler := transport.NewHandler(robotService)

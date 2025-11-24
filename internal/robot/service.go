@@ -1,58 +1,43 @@
 package robot
 
 import (
-	"io"
+	"errors"
 	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
-	TargetURL string
-	Scraper   *ScraperSession
+	Session *Session
 }
 
-func NewService(url string, scraper *ScraperSession) *Service {
-	return &Service{
-		TargetURL: url,
-		Scraper:   scraper,
+func NewService(s *Session) *Service {
+	return &Service{Session: s}
+}
+
+// Execute agora aceita o input genérico
+func (s *Service) Execute(input ExecutionInput) (map[string]any, error) {
+	log.Info().Msg("Iniciando execução com parâmetros dinâmicos")
+
+	// 1. Validação (Defensive Programming)
+	// O Service decide O QUE é obrigatório para ESSE robô específico
+	user := input.GetCredential("username")
+	pass := input.GetCredential("password")
+
+	if user == "" || pass == "" {
+		return nil, errors.New("credenciais 'username' e 'password' são obrigatórias")
 	}
-}
 
-func (s *Service) Execute() (map[string]any, error) {
-	log.Info().Str("url", s.TargetURL).Msg("Iniciando scraping...")
-
-	// Decide qual estratégia usar
-	if s.Scraper.UseRod {
-		return s.runRodStrategy()
-	}
-	return s.runHTTPStrategy()
-}
-
-// Estratégia 1: Navegação via Browser (Rod)
-func (s *Service) runRodStrategy() (map[string]any, error) {
-	page := s.Scraper.Browser.MustPage(s.TargetURL)
-	page.MustWaitLoad() // Espera o JS carregar
-
-	// Exemplo: Pegar o título da página
-	title := page.MustEval(`() => document.title`).Str()
-	
-	log.Info().Str("engine", "rod").Str("title", title).Msg("Dados extraídos")
-
-	return map[string]any{"method": "rod", "title": title}, nil
-}
-
-// Estratégia 2: Requisição HTTP Pura (Session)
-func (s *Service) runHTTPStrategy() (map[string]any, error) {
-	resp, err := s.Scraper.HTTPClient.Get(s.TargetURL)
-	if err != nil {
+	// 2. Chama a Ação de Login passando o mapa inteiro ou só o necessário
+	if err := s.Session.Login(input.Auth); err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	// Lê o corpo (simples)
-	body, _ := io.ReadAll(resp.Body)
-	size := len(body)
+	// 3. Usa parâmetros extras (ex: Data do relatório)
+	dataRelatorio, ok := input.Params["data_inicio"].(string)
+	if !ok {
+		dataRelatorio = "hoje" // valor default
+	}
 
-	log.Info().Str("engine", "http").Int("size", size).Msg("Dados baixados")
+	log.Info().Str("data_alvo", dataRelatorio).Msg("Processando...")
 
-	return map[string]any{"method": "http", "size": size}, nil
+	return map[string]any{"status": "ok"}, nil
 }

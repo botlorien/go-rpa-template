@@ -36,6 +36,13 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 
 // RunRPA é a função que o Gin vai chamar
 func (h *Handler) RunRPA(c *gin.Context) {
+	var input robot.ExecutionInput
+
+	// O Gin lê o JSON e preenche os Maps automaticamente
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "JSON inválido", "details": err.Error()})
+		return
+	}
 	// 1. Log da entrada (Contexto HTTP)
 	log.Info().
 		Str("client_ip", c.ClientIP()).
@@ -43,7 +50,7 @@ func (h *Handler) RunRPA(c *gin.Context) {
 
 	// 2. Chama o Service (O Robô)
 	// Note que o handler não sabe COMO o robô funciona, só pede para executar.
-	data, err := h.Service.Execute()
+	data, err := h.Service.Execute(input)
 
 	if err != nil {
 		log.Error().Err(err).Msg("Erro na execução do serviço")
