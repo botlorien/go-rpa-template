@@ -13,6 +13,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+	"net/url"
 )
 
 type Config struct {
@@ -147,7 +148,7 @@ func (c *Client) RunTask(funcName, description string, taskFunc func() (any, err
 	}()
 
 	endTime := time.Now()
-	duration := endTime.Sub(startTime).String()
+	duration := formatDjangoDuration(endTime.Sub(startTime))
 
 	// 5. Prepara o Payload de Finalização (PATCH)
 	finalPayload := map[string]interface{}{
@@ -189,7 +190,7 @@ func (c *Client) RunTask(funcName, description string, taskFunc func() (any, err
 // --- Métodos Privados Auxiliares ---
 
 func (c *Client) searchBot(name string) (*Bot, error) {
-	resp, err := c.doRequest("GET", "/bots/?search="+name, nil)
+	resp, err := c.doRequest("GET", "/bots/?search="+url.QueryEscape(name), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +208,8 @@ func (c *Client) searchBot(name string) (*Bot, error) {
 
 func (c *Client) ensureTask(name, description string) (*Task, error) {
 	// Busca tasks existentes
-	resp, err := c.doRequest("GET", fmt.Sprintf("/tasks/?bot=%d&name=%s", c.BotInstance.ID, name), nil)
+	safeName := url.QueryEscape(name)
+    resp, err := c.doRequest("GET", fmt.Sprintf("/tasks/?bot=%d&name=%s", c.BotInstance.ID, safeName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +273,7 @@ func (c *Client) collectEnvInfo() LogPayload {
 }
 
 func (c *Client) doRequest(method, endpoint string, data interface{}) ([]byte, error) {
-	url := c.BaseURL + endpoint
+	url := c.Config.APIURL + endpoint
 	var body io.Reader
 
 	if data != nil {
@@ -287,7 +289,7 @@ func (c *Client) doRequest(method, endpoint string, data interface{}) ([]byte, e
 		return nil, err
 	}
 
-	req.SetBasicAuth(c.User, c.Password)
+	req.SetBasicAuth(c.Config.User, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
@@ -302,4 +304,21 @@ func (c *Client) doRequest(method, endpoint string, data interface{}) ([]byte, e
 	}
 
 	return respBody, err
+}
+
+// formatDjangoDuration converte time.Duration do Go para o formato HH:MM:SS.uuuuuu do Django
+func formatDjangoDuration(d time.Duration) string {
+	micros := d.Microseconds()
+	
+	seconds := micros / 1000000
+	micros = micros % 1000000
+	
+	minutes := seconds / 60
+	seconds = seconds % 60
+	
+	hours := minutes / 60
+	minutes = minutes % 60
+	
+	// Retorna formato: 00:00:00.000000
+	return fmt.Sprintf("%02d:%02d:%02d.%06d", hours, minutes, seconds, micros)
 }
