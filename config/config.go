@@ -29,8 +29,11 @@ func Load() (*Config, error) {
 	if err != nil {
 		log.Fatalf("Erro ao obter diretório atual: %v", err)
 	}
+	downloadDir := rootDir + string(os.PathSeparator) + "downloads"
+	os.MkdirAll(downloadDir, 0755)
+	
 	viper.SetDefault("BASE_DIR", rootDir)
-	viper.SetDefault("DOWNLOAD_DIR", rootDir + string(os.PathSeparator) + "downloads")
+	viper.SetDefault("DOWNLOAD_DIR", downloadDir)
 	viper.SetDefault("APP_PORT", "8080")
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("APP_ENV", "local") // Por padrão é modo dev
