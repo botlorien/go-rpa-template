@@ -19,6 +19,8 @@ type Config struct {
 	BotAppURL  string `mapstructure:"BOTAPP_API_URL"`
 	BotAppUser string `mapstructure:"BOTAPP_API_USUARIO"`
 	BotAppPass string `mapstructure:"BOTAPP_API_SENHA"`
+	DBDriver string `mapstructure:"DB_DRIVER"` // postgres, mysql, sqlite
+    DBDSN    string `mapstructure:"DB_DSN"`    // Connection String
 }
 
 func Load() (*Config, error) {
@@ -38,7 +40,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("BASE_DIR", rootDir)
 	viper.SetDefault("PATH_DOWNLOAD", pathDownload)
 	viper.SetDefault("PATH_REPORTS", pathReports)
-	
+
 	viper.SetDefault("APP_PORT", "8080")
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("APP_ENV", "local") // Por padrão é modo dev

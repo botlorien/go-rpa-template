@@ -5,8 +5,10 @@ import (
 
 	"github.com/botlorien/go-rpa-template/config"
 	"github.com/botlorien/go-rpa-template/internal/robot"
+	"github.com/botlorien/go-rpa-template/internal/repository"
 	"github.com/botlorien/go-rpa-template/pkg/botapp"
 	"github.com/botlorien/go-rpa-template/pkg/logger"
+	"github.com/botlorien/go-rpa-template/pkg/database"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper" // Importante: Viper mantém o estado do config carregado
 )
@@ -45,6 +47,15 @@ func main() {
 		}
 	}
 
+	// 1. Infra: Banco de Dados
+	dbConn, err := database.NewConnection(cfg.DBDriver, cfg.DBDSN)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Erro no banco")
+	}
+
+	// 2. Camada Repository
+	relatorioRepo := repository.NewRelatorioRepository(dbConn)
+
 	// 3. Preparar o Input
 	// Mapeamos as variáveis de ambiente para a Struct de entrada do Robô.
 	// O Viper pega tanto do .env quanto das vars do Sistema Operacional.
@@ -66,7 +77,7 @@ func main() {
 	defer scraperSession.Close()
 
 	// 5. Executar Robô com os Inputs
-	robotService := robot.NewService(scraperSession)
+	robotService := robot.NewService(scraperSession, relatorioRepo)
 	
 	// Passamos o input criado acima
 	// 3. Define a tarefa que será executada (Sua lógica de negócio)

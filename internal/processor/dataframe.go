@@ -81,7 +81,7 @@ func (df *DataFrame) Filter(condition func(row Row) bool) *DataFrame {
 // --- Helpers de Conversão (Padrão Brasil) ---
 
 // GetFloat converte "1.234,56" para float64
-func (r Row) GetFloat(col string) float64 {
+func (r Row) GetFloatBR(col string) float64 {
 	val, ok := r[col]
 	if !ok || val == "" {
 		return 0.0
@@ -91,6 +91,17 @@ func (r Row) GetFloat(col string) float64 {
 	clean = strings.ReplaceAll(clean, ",", ".")
 	
 	f, _ := strconv.ParseFloat(clean, 64)
+	return f
+}
+
+
+func (r Row) GetFloatStd(col string) float64 {
+	val, ok := r[col]
+	if !ok || val == "" {
+		return 0.0
+	}
+	// ParseFloat nativo do Go já entende o ponto como decimal corretamente
+	f, _ := strconv.ParseFloat(val, 64)
 	return f
 }
 

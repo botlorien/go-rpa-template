@@ -6,8 +6,10 @@ import (
 
 	"github.com/botlorien/go-rpa-template/config"
 	"github.com/botlorien/go-rpa-template/internal/robot"
+	"github.com/botlorien/go-rpa-template/internal/repository"
 	transport "github.com/botlorien/go-rpa-template/internal/transport/http" // Alias para não confundir com net/http
 	"github.com/botlorien/go-rpa-template/pkg/logger"
+	"github.com/botlorien/go-rpa-template/pkg/database"
 )
 
 func main() {
@@ -30,7 +32,14 @@ func main() {
 	// ---------------------------------------------------------
 	// 3. INJEÇÃO DE DEPENDÊNCIA (A mágica acontece aqui)
 	// ---------------------------------------------------------
+	// 1. Infra: Banco de Dados
+	dbConn, err := database.NewConnection(cfg.DBDriver, cfg.DBDSN)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Erro no banco")
+	}
 
+	// 2. Camada Repository
+	relatorioRepo := repository.NewRelatorioRepository(dbConn)
 	// A. Criamos o Robô (Core Domain)
 	// 1. Inicializa o Scraper (Singleton)
    scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.PathDownload)
@@ -39,7 +48,7 @@ func main() {
     defer scraperSession.Close()
 
     // 2. Injeta no Service
-    robotService := robot.NewService(scraperSession)
+    robotService := robot.NewService(scraperSession, relatorioRepo)
 
 	// B. Criamos o Handler HTTP e injetamos o Robô nele
 	httpHandler := transport.NewHandler(robotService)

@@ -3,14 +3,19 @@ package robot
 import (
 	"errors"
 	"github.com/rs/zerolog/log"
+	"github.com/botlorien/go-rpa-template/internal/repository"
 )
 
 type Service struct {
 	Session *Session
+	Repo    *repository.RelatorioRepository
 }
 
-func NewService(s *Session) *Service {
-	return &Service{Session: s}
+func NewService(s *Session, r *repository.RelatorioRepository) *Service {
+	return &Service{
+		Session: s,
+		Repo:    r,
+	}
 }
 
 // Execute agora aceita o input genérico
