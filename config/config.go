@@ -2,10 +2,13 @@ package config
 
 import (
 	"log"
+	"os"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
+	BaseDir   string `mapstructure:"BASE_DIR"`
+	DownloadDir   string `mapstructure:"DOWNLOAD_DIR"`
 	AppPort  string `mapstructure:"APP_PORT"`
 	TargetURL string `mapstructure:"TARGET_URL"`
 	LogLevel string `mapstructure:"LOG_LEVEL"`
@@ -22,6 +25,12 @@ func Load() (*Config, error) {
 	viper.AutomaticEnv()
 
 	// Defaults
+	rootDir, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Erro ao obter diretório atual: %v", err)
+	}
+	viper.SetDefault("BASE_DIR", rootDir)
+	viper.SetDefault("DOWNLOAD_DIR", rootDir + string(os.PathSeparator) + "downloads")
 	viper.SetDefault("APP_PORT", "8080")
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("APP_ENV", "local") // Por padrão é modo dev
@@ -34,6 +43,6 @@ func Load() (*Config, error) {
 	}
 
 	var cfg Config
-	err := viper.Unmarshal(&cfg)
+	err = viper.Unmarshal(&cfg)
 	return &cfg, err
 }

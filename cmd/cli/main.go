@@ -62,7 +62,7 @@ func main() {
 	}
 
 	// 4. Inicializar Infraestrutura (Browser/HTTP)
-	scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless)
+	scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.DownloadDir)
 	defer scraperSession.Close()
 
 	// 5. Executar Robô com os Inputs
