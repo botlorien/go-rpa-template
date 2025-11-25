@@ -33,7 +33,7 @@ func main() {
 
 	// A. Criamos o Robô (Core Domain)
 	// 1. Inicializa o Scraper (Singleton)
-   scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.DownloadDir)
+   scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.PathDownload)
     
     // IMPORTANTE: Fecha o browser quando a API cair
     defer scraperSession.Close()
