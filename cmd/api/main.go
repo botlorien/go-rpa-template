@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
@@ -10,6 +11,7 @@ import (
 	transport "github.com/botlorien/go-rpa-template/internal/transport/http" // Alias para não confundir com net/http
 	"github.com/botlorien/go-rpa-template/pkg/logger"
 	"github.com/botlorien/go-rpa-template/pkg/database"
+	"github.com/botlorien/go-rpa-template/pkg/botapp"
 )
 
 func main() {
@@ -29,31 +31,47 @@ func main() {
 	// Middleware de log simples (opcional, já que temos log no handler)
 	r.Use(gin.Logger())
 
-	// ---------------------------------------------------------
-	// 3. INJEÇÃO DE DEPENDÊNCIA (A mágica acontece aqui)
-	// ---------------------------------------------------------
-	// 1. Infra: Banco de Dados
+	botConfig := botapp.Config{
+		APIURL:   cfg.BotAppURL,
+		User:     cfg.BotAppUser,
+		Password: cfg.BotAppPass,
+	}
+
+	// 3. Inicializa o Client injetando a config
+	app, err := botapp.NewClient(botConfig)
+	if err != nil {
+		log.Warn().Msg("BotApp API não configurada. Rodando sem logs remotos.")
+		app = nil // O código deve tratar app == nil
+	} else {
+		// 2. Registra o Bot (set_bot do Python)
+		err = app.SetBot("Meu Bot Go", "Descrição do bot", "1.0.0", "TI")
+		if err != nil {
+			log.Error().Err(err).Msg("Falha ao registrar bot na dashboard")
+			os.Exit(1)
+		}
+	}
+	// 4. Infra: Banco de Dados
 	dbConn, err := database.NewConnection(cfg.DBDriver, cfg.DBDSN)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Erro no banco")
 	}
 
-	// 2. Camada Repository
+	// 5. Camada Repository
 	relatorioRepo := repository.NewRelatorioRepository(dbConn)
-	// A. Criamos o Robô (Core Domain)
-	// 1. Inicializa o Scraper (Singleton)
+
+	// 6. Inicializa o Scraper (Singleton)
    scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.PathDownload)
     
     // IMPORTANTE: Fecha o browser quando a API cair
     defer scraperSession.Close()
 
-    // 2. Injeta no Service
-    robotService := robot.NewService(scraperSession, relatorioRepo)
+    // 7. Injeta no Service
+    robotService := robot.NewService(scraperSession, relatorioRepo, app)
 
-	// B. Criamos o Handler HTTP e injetamos o Robô nele
+	// 8. Criamos o Handler HTTP e injetamos o Robô nele
 	httpHandler := transport.NewHandler(robotService)
 
-	// C. O Handler registra suas próprias rotas no servidor
+	// 9. O Handler registra suas próprias rotas no servidor
 	httpHandler.RegisterRoutes(r)
 
 	// ---------------------------------------------------------

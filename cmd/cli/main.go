@@ -25,21 +25,20 @@ func main() {
 
 	log.Info().Msg("Iniciando Worker de RPA via CLI...")
 
-	// 1. Inicializa o App de Gestão (Substituto do Python BotAppRestful)
-// 2. Prepara a config específica do BotApp
+	// 3. Prepara a config específica do BotApp
 	botConfig := botapp.Config{
 		APIURL:   cfg.BotAppURL,
 		User:     cfg.BotAppUser,
 		Password: cfg.BotAppPass,
 	}
 
-	// 3. Inicializa o Client injetando a config
+	// 4. Inicializa o Client injetando a config
 	app, err := botapp.NewClient(botConfig)
 	if err != nil {
 		log.Warn().Msg("BotApp API não configurada. Rodando sem logs remotos.")
 		app = nil // O código deve tratar app == nil
 	} else {
-		// 2. Registra o Bot (set_bot do Python)
+		// 5. Registra o Bot (set_bot do Python)
 		err = app.SetBot("Meu Bot Go", "Descrição do bot", "1.0.0", "TI")
 		if err != nil {
 			log.Error().Err(err).Msg("Falha ao registrar bot na dashboard")
@@ -47,16 +46,16 @@ func main() {
 		}
 	}
 
-	// 1. Infra: Banco de Dados
+	// 6. Infra: Banco de Dados
 	dbConn, err := database.NewConnection(cfg.DBDriver, cfg.DBDSN)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Erro no banco")
 	}
 
-	// 2. Camada Repository
+	// 7. Camada Repository
 	relatorioRepo := repository.NewRelatorioRepository(dbConn)
 
-	// 3. Preparar o Input
+	// 8. Preparar o Input
 	// Mapeamos as variáveis de ambiente para a Struct de entrada do Robô.
 	// O Viper pega tanto do .env quanto das vars do Sistema Operacional.
 	input := robot.ExecutionInput{
@@ -72,28 +71,32 @@ func main() {
 		},
 	}
 
-	// 4. Inicializar Infraestrutura (Browser/HTTP)
+	// 9. Inicializar Infraestrutura (Browser/HTTP)
 	scraperSession := robot.NewSession(cfg.UseRod, cfg.RodHeadless, cfg.PathDownload)
 	defer scraperSession.Close()
 
-	// 5. Executar Robô com os Inputs
-	robotService := robot.NewService(scraperSession, relatorioRepo)
+	// 10. Executar Robô com os Inputs
+	robotService := robot.NewService(scraperSession, relatorioRepo, app)
 	
 	// Passamos o input criado acima
-	// 3. Define a tarefa que será executada (Sua lógica de negócio)
+	// 11. Define a tarefa que será executada (Sua lógica de negócio)
 	// Isso seria o conteúdo da função def minha_tarefa():
 	minhaTarefa := func() (any, error) {
 		// Chama seu Service aqui dentro
 		return robotService.Execute(input)
 	}
 
-	// 4. Executa a tarefa "Envelopada" (task_restful do Python)
+	// 12. Executa a tarefa "Envelopada" 
 	var resultado any
 	
 	if app != nil {
 		// Se a API estiver configurada, roda via RunTask (com logs na dashboard)
 		// "Extrair Dados SSW" -> Nome que vai aparecer na Dash
-		resultado, err = app.RunTask("Extrair Dados SSW", "Extrai relatório 019", minhaTarefa)
+		resultado, err = app.RunTask(
+			"Execução Geral", 
+			"Executa pipeline completa", 
+			minhaTarefa,
+		)
 	} else {
 		// Fallback: roda local sem logs na dashboard
 		resultado, err = minhaTarefa()

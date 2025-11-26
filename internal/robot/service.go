@@ -4,22 +4,33 @@ import (
 	"errors"
 	"github.com/rs/zerolog/log"
 	"github.com/botlorien/go-rpa-template/internal/repository"
+	"github.com/botlorien/go-rpa-template/pkg/utils"
+	"github.com/botlorien/go-rpa-template/pkg/botapp"
 )
 
 type Service struct {
 	Session *Session
 	Repo    *repository.RelatorioRepository
+	App     *botapp.Client
 }
 
-func NewService(s *Session, r *repository.RelatorioRepository) *Service {
+func NewService(s *Session, r *repository.RelatorioRepository, a *botapp.Client) *Service {
 	return &Service{
 		Session: s,
 		Repo:    r,
+		App:	 a,
 	}
 }
 
 // Execute agora aceita o input genérico
-func (s *Service) Execute(input ExecutionInput) (map[string]any, error) {
+func (s *Service) Execute(input ExecutionInput) (any, error) {
+	    log.Info().Str("dir", s.Session.DownloadDir).Msg("Limpando diretório de trabalho...")
+    
+    if err := utils.EmptyDirectory(s.Session.DownloadDir); err != nil {
+        // Se não conseguir limpar, é perigoso continuar
+        log.Error().Err(err).Msg("Falha ao limpar pasta de downloads")
+        return nil, err
+    }
 	log.Info().Msg("Iniciando execução com parâmetros dinâmicos")
 
 	// 1. Validação (Defensive Programming)
@@ -31,18 +42,26 @@ func (s *Service) Execute(input ExecutionInput) (map[string]any, error) {
 		return nil, errors.New("credenciais 'username' e 'password' são obrigatórias")
 	}
 
-	// 2. Chama a Ação de Login passando o mapa inteiro ou só o necessário
-	if err := s.Session.Login(input.Auth); err != nil {
-		return nil, err
+	// various tasks can be added here
+	var resultado any
+	var err error
+
+	loginTask := func() (any, error){
+		if err := s.Session.Login(input.Auth); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
 
-	// 3. Usa parâmetros extras (ex: Data do relatório)
-	dataRelatorio, ok := input.Params["data_inicio"].(string)
-	if !ok {
-		dataRelatorio = "hoje" // valor default
+	if s.App != nil {
+		resultado, err = s.App.RunTask(
+			"LoginTask",
+			"Description Task", 
+			loginTask,
+	)
+
+	} else {
+		resultado, err = loginTask()
 	}
-
-	log.Info().Str("data_alvo", dataRelatorio).Msg("Processando...")
-
-	return map[string]any{"status": "ok"}, nil
+	return resultado, err
 }
