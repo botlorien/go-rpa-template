@@ -109,6 +109,7 @@ func (c *Client) RunTask(funcName, description string, taskFunc func() (any, err
 
 	// 1. Registra/Busca a Task na API
 	taskObj, err := c.ensureTask(funcName, description)
+
 	if err != nil {
 		return nil, fmt.Errorf("erro ao registrar task: %v", err)
 	}
@@ -219,7 +220,7 @@ func (c *Client) ensureTask(name, description string) (*Task, error) {
 	}
 
 	for _, t := range tasks {
-		if t.Name == name {
+		if t.Name == name && t.BotID == c.BotInstance.ID {
 			// Update description if needed
 			if t.Description != description {
 				c.doRequest("PATCH", fmt.Sprintf("/tasks/%d/", t.ID), map[string]string{"description": description})
