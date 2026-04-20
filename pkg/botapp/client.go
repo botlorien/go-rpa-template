@@ -122,7 +122,8 @@ func (c *Client) RunTask(funcName, description string, taskFunc func() (any, err
 	logPayload := envInfo
 	logPayload.TaskID = taskObj.ID
 	logPayload.Status = "started"
-	logPayload.StartTime = startTime
+	logPayload.StartTime = &startTime
+	// EndTime fica nil: com ponteiro, `omitempty` efetivamente omite do JSON.
 	
 	logResp, err := c.doRequest("POST", "/tasklog/", logPayload)
 	if err != nil {

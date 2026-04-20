@@ -20,24 +20,30 @@ type Task struct {
 	Description string `json:"description"`
 }
 
-// LogPayload representa o payload para criar/atualizar logs
+// LogPayload representa o payload para criar/atualizar logs.
+//
+// StartTime/EndTime são *time.Time (ponteiro) porque `omitempty` em
+// `time.Time` (struct) NÃO omite o zero value — sairia como
+// "0001-01-01T00:00:00Z" no JSON e a API reprova com
+// "Datetime value out of range" (DRF converte pra America/Cuiaba e
+// estoura em ano 0). Com ponteiro, nil é realmente omitido.
 type LogPayload struct {
-	TaskID        int       `json:"task,omitempty"`
-	Status        string    `json:"status"`
-	StartTime     time.Time `json:"start_time,omitempty"`
-	EndTime       time.Time `json:"end_time,omitempty"`
-	Duration      string    `json:"duration,omitempty"` // API espera string no formato de tempo do Django/Python
-	HostIP        string    `json:"host_ip"`
-	HostName      string    `json:"host_name"`
-	UserLogin     string    `json:"user_login"`
-	BotDir        string    `json:"bot_dir"`
-	OSPlatform    string    `json:"os_platform"`
-	PythonVersion string    `json:"python_version"` // Usaremos GoVersion aqui
-	PID           int       `json:"pid"`
-	Env           string    `json:"env"`
-	TriggerSource string    `json:"trigger_source"`
-	ManualTrigger bool      `json:"manual_trigger"`
-	ResultData    any       `json:"result_data,omitempty"`
-	ErrorMessage  string    `json:"error_message,omitempty"`
-	ExceptionType string    `json:"exception_type,omitempty"`
+	TaskID        int        `json:"task,omitempty"`
+	Status        string     `json:"status"`
+	StartTime     *time.Time `json:"start_time,omitempty"`
+	EndTime       *time.Time `json:"end_time,omitempty"`
+	Duration      string     `json:"duration,omitempty"` // API espera string no formato de tempo do Django/Python
+	HostIP        string     `json:"host_ip"`
+	HostName      string     `json:"host_name"`
+	UserLogin     string     `json:"user_login"`
+	BotDir        string     `json:"bot_dir"`
+	OSPlatform    string     `json:"os_platform"`
+	PythonVersion string     `json:"python_version"` // Usaremos GoVersion aqui
+	PID           int        `json:"pid"`
+	Env           string     `json:"env"`
+	TriggerSource string     `json:"trigger_source"`
+	ManualTrigger bool       `json:"manual_trigger"`
+	ResultData    any        `json:"result_data,omitempty"`
+	ErrorMessage  string     `json:"error_message,omitempty"`
+	ExceptionType string     `json:"exception_type,omitempty"`
 }
